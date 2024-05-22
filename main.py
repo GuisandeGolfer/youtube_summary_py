@@ -7,7 +7,7 @@ from pytube import YouTube
 load_dotenv()
 
 
-dest_path = "/Users/diegoguisande/Desktop/PARA/Projects_1/AI-text/transcribe-mp3/youtube_summary_py/"
+dest_path = os.path.abspath(".")
 # change the choices to accept: 1, 2, 3, 4 instead of asking them to type out the dest.
 
 
@@ -99,16 +99,16 @@ def ask_gpt_for_summary(client, transcript: str) -> str:
 
 
 def save_file_to_obsidian(location: int, transcript: str, filename: str) -> None:
-    local_obsidian_path =  "/Users/diegoguisande/Library/Mobile Documents/iCloud~md~obsidian/Documents/Second Brain/PARA"
+    local_obsidian_path = os.path.abspath("../../../..")
 
     if location == 1:
-        local_obsidian_path = "/Users/diegoguisande/Library/Mobile Documents/iCloud~md~obsidian/Documents/Second Brain/PARA/Projects"
+        local_obsidian_path = local_obsidian_path + "/Projects"
     elif location == 2:
-        local_obsidian_path = "/Users/diegoguisande/Library/Mobile Documents/iCloud~md~obsidian/Documents/Second Brain/PARA/Areas"
+        local_obsidian_path = local_obsidian_path + "/Areas"
     elif location == 3:
-        local_obsidian_path = "/Users/diegoguisande/Library/Mobile Documents/iCloud~md~obsidian/Documents/Second Brain/PARA/Resources"
+        local_obsidian_path = local_obsidian_path + "/Resources"
     else:
-        local_obsidian_path = "/Users/diegoguisande/Library/Mobile Documents/iCloud~md~obsidian/Documents/Second Brain/PARA/Archives/"
+        local_obsidian_path = local_obsidian_path + "/Archives"
 
     summary_text = str(transcript)
 

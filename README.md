@@ -12,6 +12,8 @@
 3. [x] transcribe audio file through OpenAI library API call.
 4. [x] send a prompt to ChatGPT with transcription of content.
 5. [x] Create a new repo and a read-me with a video that explains how it works.
+6. [ ] getting an error while using py-tube (only workarounds on StackOverflow)
+    - switch the script from using pytube and use yt-dlp python lib instead.
 
 ### Things to improve later on:
 
