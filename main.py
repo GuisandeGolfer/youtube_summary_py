@@ -1,8 +1,11 @@
 import os
+import subprocess
 from dotenv import load_dotenv
 from openai import OpenAI
-from pytube import YouTube
+# from pytube import YouTube
 
+# change 'from pytube import YouTube' to "yt-dlp" library instead to avoid lib glitch, maybe try to make a pull request
+# to fix the library issue on Github
 
 load_dotenv()
 
@@ -47,19 +50,24 @@ def recieve_video_url() -> str:
 
 def download_video_audio(url: str, filename: str) -> str:
 
-    yt = YouTube(url)
+    print(f"url is {url}")
+    # Example bash command to execute
+    bash_command = f"yt-dlp -x --audio-format mp3 {url}"
 
-    audio_only = yt.streams.filter(only_audio=True)
+    print(bash_command)
+
+    os.chdir("audio/")
+
+    # Execute the bash command and capture the output
+    output = subprocess.check_output(bash_command, shell=True)
+
+    print(output.decode())
 
     current_pth = os.getcwd()
 
     if os.path.exists(f'{current_pth}/{filename}.mp3'):
 
         raise Exception("\n There is a file with the same name in audio/")
-
-    else:
-        for stream in audio_only:
-            stream.download(f'{dest_path}/audio', f'{filename}.mp3')
 
     return filename
 
@@ -123,6 +131,7 @@ def save_file_to_obsidian(location: int, transcript: str, filename: str) -> None
 def main():
     url = recieve_video_url()
     filename = recieve_filename()
+
     obsidian_dest = pick_dest_folder()
 
     file_name = download_video_audio(url, filename)
