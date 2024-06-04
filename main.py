@@ -2,16 +2,14 @@ import os
 import subprocess
 from dotenv import load_dotenv
 from openai import OpenAI
-# from pytube import YouTube
 
-# change 'from pytube import YouTube' to "yt-dlp" library instead to avoid lib glitch, maybe try to make a pull request
-# to fix the library issue on Github
 
 load_dotenv()
 
 
 dest_path = os.path.abspath(".")
-# change the choices to accept: 1, 2, 3, 4 instead of asking them to type out the dest.
+# change the choices to accept:
+# 1, 2, 3, 4 instead of asking them to type out the dest.
 
 
 def pick_dest_folder() -> int:
@@ -50,9 +48,15 @@ def recieve_video_url() -> str:
 
 def download_video_audio(url: str, filename: str) -> str:
 
+    current_pth = os.getcwd()
+
+    if os.path.exists(f'{current_pth}/{filename}.mp3'):
+
+        raise Exception("\n There is a file with the same name in audio/")
+
     print(f"url is {url}")
     # Example bash command to execute
-    bash_command = f"yt-dlp -x --audio-format mp3 {url}"
+    bash_command = f"yt-dlp -x --audio-format mp3 --output {filename}.mp3 {url}"
 
     print(bash_command)
 
@@ -62,12 +66,6 @@ def download_video_audio(url: str, filename: str) -> str:
     output = subprocess.check_output(bash_command, shell=True)
 
     print(output.decode())
-
-    current_pth = os.getcwd()
-
-    if os.path.exists(f'{current_pth}/{filename}.mp3'):
-
-        raise Exception("\n There is a file with the same name in audio/")
 
     return filename
 
@@ -107,7 +105,25 @@ def ask_gpt_for_summary(client, transcript: str) -> str:
 
 
 def save_file_to_obsidian(location: int, transcript: str, filename: str) -> None:
-    local_obsidian_path = os.path.abspath("../../../..")
+    # local_obsidian_path = os.path.abspath("../../../..")
+    # TODO: instead of doing this bullshit below: just write out the full path name
+
+    cmd_obsidian = subprocess.Popen(["which", "obsidian"], stdout=subprocess.PIPE)
+
+    cmd_cut = subprocess.Popen(["cut", "-d", "'/'", "-f2-"], stdin=cmd_obsidian.stdout, stdout=subprocess.PIPE)
+
+    cmd_obsidian.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
+
+    cmd_cut = cmd_cut.communicate()[0]
+
+    print(cmd_cut.decode())
+
+    # output = subprocess.check_output(command, shell=True)
+
+    local_obsidian_path = cmd_cut.decode()
+
+    # need to  fix this horrible reference
+    print(local_obsidian_path)
 
     if location == 1:
         local_obsidian_path = local_obsidian_path + "/Projects"
