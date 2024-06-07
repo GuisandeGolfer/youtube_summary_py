@@ -7,7 +7,7 @@ from openai import OpenAI
 load_dotenv()
 
 
-dest_path = os.path.abspath(".")
+dest_path = os.path.abspath("/Users/diegoguisande/Desktop/PARA/Projects_1/AI-text/transcribe-mp3/youtube_summary_py")
 # change the choices to accept:
 # 1, 2, 3, 4 instead of asking them to type out the dest.
 
@@ -27,7 +27,7 @@ def pick_dest_folder() -> int:
 
 
 def recieve_filename() -> str:
-    filename: str = input("what do you want the audio to be named?... \n")
+    filename: str = input("what do you want the summary/audio to be named?... \n")
 
     if ".mp3" not in filename:
         return filename
@@ -60,7 +60,7 @@ def download_video_audio(url: str, filename: str) -> str:
 
     print(bash_command)
 
-    os.chdir("audio/")
+    os.chdir("/Users/diegoguisande/Desktop/PARA/Projects_1/AI-text/transcribe-mp3/youtube_summary_py/audio")
 
     # Execute the bash command and capture the output
     output = subprocess.check_output(bash_command, shell=True)
@@ -91,13 +91,13 @@ def transcribe_mp3_file(filename: str, dest_path=dest_path) -> tuple[OpenAI, str
     return client, transcription.text
 
 
-def ask_gpt_for_summary(client, transcript: str) -> str:
+def ask_gpt_for_summary(client, transcript: str, url: str) -> str:
 
     completion = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant. You are helping me summarize and write actionable insights from transcriptions of youtube videos."},
-                {"role": "user", "content": f"Hello! Can you help me summarize and write a detailed, yet concise document from this transcript? \n {transcript}"}
+                {"role": "user", "content": f"Hello! Can you help me summarize and write a detailed, yet concise document from this transcript? \n {transcript}, and at the bottom of the summary can you put this url: {url} underneath a h2 md heading like this ![](<insert-url-here>) "}
                 ]
             )
 
@@ -105,25 +105,10 @@ def ask_gpt_for_summary(client, transcript: str) -> str:
 
 
 def save_file_to_obsidian(location: int, transcript: str, filename: str) -> None:
-    # local_obsidian_path = os.path.abspath("../../../..")
-    # TODO: instead of doing this bullshit below: just write out the full path name
-
-    cmd_obsidian = subprocess.Popen(["which", "obsidian"], stdout=subprocess.PIPE)
-
-    cmd_cut = subprocess.Popen(["cut", "-d", "'/'", "-f2-"], stdin=cmd_obsidian.stdout, stdout=subprocess.PIPE)
-
-    cmd_obsidian.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
-
-    cmd_cut = cmd_cut.communicate()[0]
-
-    print(cmd_cut.decode())
-
-    # output = subprocess.check_output(command, shell=True)
-
-    local_obsidian_path = cmd_cut.decode()
+    local_obsidian_path = "/Users/diegoguisande/Library/Mobile Documents/iCloud~md~obsidian/Documents/Second Brain/PARA"
 
     # need to  fix this horrible reference
-    print(local_obsidian_path)
+    print(f"obsidian path: {local_obsidian_path}")
 
     if location == 1:
         local_obsidian_path = local_obsidian_path + "/Projects"
@@ -145,6 +130,8 @@ def save_file_to_obsidian(location: int, transcript: str, filename: str) -> None
 
 
 def main():
+    # TODO: [x] add the youtube url in embed markdown format at the bottom of the chatgpt summary
+
     url = recieve_video_url()
     filename = recieve_filename()
 
@@ -154,7 +141,7 @@ def main():
 
     client, transcription = transcribe_mp3_file(file_name)
 
-    summary = ask_gpt_for_summary(client, transcription)
+    summary = ask_gpt_for_summary(client, transcription, url)
 
     save_file_to_obsidian(obsidian_dest, summary, file_name)
 
