@@ -11,7 +11,6 @@ dest_path = os.path.abspath("/Users/diegoguisande/Desktop/PARA/Projects_1/AI-tex
 # change the choices to accept:
 # 1, 2, 3, 4 instead of asking them to type out the dest.
 
-
 def pick_dest_folder() -> int:
 
     para_folder: str = input(
@@ -130,7 +129,6 @@ def save_file_to_obsidian(location: int, transcript: str, filename: str) -> None
 
 
 def main():
-    # TODO: [x] add the youtube url in embed markdown format at the bottom of the chatgpt summary
 
     url = recieve_video_url()
     filename = recieve_filename()
