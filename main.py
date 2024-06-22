@@ -7,7 +7,6 @@ from openai import OpenAI
 load_dotenv()
 
 
-
 dest_path = os.path.abspath("/Users/diegoguisande/Desktop/PARA/Projects_1/AI-text/transcribe-mp3/youtube_summary_py")
 # change the choices to accept:
 # 1, 2, 3, 4 instead of asking them to type out the dest.
