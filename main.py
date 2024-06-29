@@ -7,7 +7,7 @@ from openai import OpenAI
 load_dotenv()
 
 
-dest_path = os.path.abspath("/Users/diegoguisande/Desktop/PARA/Projects_1/AI-text/transcribe-mp3/youtube_summary_py")
+dest_path = os.path.abspath("/Users/diegoguisande/Desktop/PARA/Projects_1/youtube_summary_py")
 # change the choices to accept:
 # 1, 2, 3, 4 instead of asking them to type out the dest.
 
@@ -60,7 +60,7 @@ def download_video_audio(url: str, filename: str) -> str:
 
     print(bash_command)
 
-    os.chdir("/Users/diegoguisande/Desktop/PARA/Projects_1/AI-text/transcribe-mp3/youtube_summary_py/audio")
+    os.chdir("/Users/diegoguisande/Desktop/PARA/Projects_1/youtube_summary_py/audio")
 
     # Execute the bash command and capture the output
     output = subprocess.check_output(bash_command, shell=True)
