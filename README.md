@@ -19,8 +19,9 @@
 
 1. [x] since the api key is being loaded in from *password-store*, I may have to enter the encryption key after time passes
     - made a .env file with my API key hard-coded
-2. [ ] maybe add an ASCII moving loading screen while the API calls are happening?
+2. [x] maybe add an ASCII moving loading screen while the API calls are happening?
     - some kind of fun animation
+    - found a cool animation library and working on implementing for API calls, and yt-dlp.
 3. [ ] create a chrome extension for this?
     - Youtube AI summarizer
 4. [ ] or make a website that has a one-time payment for a license to use a web interface that stores their summaries,

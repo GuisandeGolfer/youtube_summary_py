@@ -2,6 +2,7 @@ import os
 import subprocess
 from dotenv import load_dotenv
 from openai import OpenAI
+# from yt_dlp import YoutubeDL
 
 
 load_dotenv()
@@ -27,7 +28,7 @@ def pick_dest_folder() -> int:
 
 
 def recieve_filename() -> str:
-    filename: str = input("what do you want the summary/audio to be named?... \n")
+    filename: str = input("what do you want the summary/audio to be named?... (don't put extension)\n")
 
     if ".mp3" not in filename:
         return filename
@@ -45,7 +46,9 @@ def recieve_video_url() -> str:
     else:
         raise Exception("not a url \n needs .com or www")
 
-
+# TODO: instead of using subprocess, just use the yt_dlp python library
+    # also make a bash script or something that can download or update yt-dlp
+    # and set dependencies up.
 def download_video_audio(url: str, filename: str) -> str:
 
     current_pth = os.getcwd()
@@ -56,7 +59,7 @@ def download_video_audio(url: str, filename: str) -> str:
 
     print(f"url is {url}")
     # Example bash command to execute
-    bash_command = f"yt-dlp -x --audio-format mp3 --output {filename}.mp3 {url}"
+    bash_command = f"yt-dlp --progress -x --audio-format mp3 --output {filename}.mp3 {url}"
 
     print(bash_command)
 
@@ -78,6 +81,8 @@ def transcribe_mp3_file(filename: str, dest_path=dest_path) -> tuple[OpenAI, str
 
     audio_file = open(f"{dest_path}/audio/{filename}.mp3", "rb")
 
+    # TODO: print something to the screen, like rotating ascii to show the user
+    # that openAI is working on this transcription and prompt
     transcription = client.audio.transcriptions.create(
         model="whisper-1",
         file=audio_file,
@@ -97,7 +102,7 @@ def ask_gpt_for_summary(client, transcript: str, url: str) -> str:
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant. You are helping me summarize and write actionable insights from transcriptions of youtube videos."},
-                {"role": "user", "content": f"Hello! Can you help me summarize and write a detailed, yet concise document from this transcript? \n {transcript}, and at the bottom of the summary can you put this url: {url} underneath a h2 md heading like this ![](<insert-url-here>) "}
+                {"role": "user", "content": f"Hello! Can you help me summarize and write a detailed, yet concise document from this transcript? \n {transcript}, also at the bottom of the summary can you put this url: {url} underneath a h2 md heading like this ![](<insert-url-here>) "}
                 ]
             )
 
