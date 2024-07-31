@@ -4,3 +4,4 @@ audio/
 env/
 transcriptions/
 venv
+__pycache__/
