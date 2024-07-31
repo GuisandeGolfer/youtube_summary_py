@@ -22,6 +22,7 @@
 2. [x] maybe add an ASCII moving loading screen while the API calls are happening?
     - some kind of fun animation
     - found a cool animation library and working on implementing for API calls, and yt-dlp.
+    - [x] added a tqdm progress bar for yt-dlp and openAI calls
 3. [ ] create a chrome extension for this?
     - Youtube AI summarizer
 4. [ ] or make a website that has a one-time payment for a license to use a web interface that stores their summaries,
