@@ -4,7 +4,6 @@ import time
 from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
-import requests  # for simulating network request progress
 
 load_dotenv()
 
@@ -40,13 +39,11 @@ def recieve_video_url() -> str:
 
 
 def download_video_audio(url: str, filename: str) -> str:
+    os.chdir("/Users/diegoguisande/Desktop/PARA/Projects_1/youtube_summary_py/audio")
     current_pth = os.getcwd()
     if os.path.exists(f'{current_pth}/{filename}.mp3'):
-        raise Exception("\n There is a file with the same name in audio/")
-    print(f"url is {url}")
+        raise Exception("\n There is a file with the same name in the audio folder")
     bash_command = f"yt-dlp --progress -x --audio-format mp3 --output {filename}.mp3 {url}"
-    print(bash_command)
-    os.chdir("/Users/diegoguisande/Desktop/PARA/Projects_1/youtube_summary_py/audio")
 
     # Execute the bash command and capture the output
     with tqdm(total=100, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}") as pbar:
@@ -61,6 +58,10 @@ def download_video_audio(url: str, filename: str) -> str:
                 pbar.update(10)  # Simulate progress update, adjust as necessary
             time.sleep(0.5)  # Simulate delay
         pbar.update(100 - pbar.n)  # Ensure the bar completes
+
+    # delete mp3
+    os.remove(f'{current_pth}/{filename}.mp3')
+
     return filename
 
 
