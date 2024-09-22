@@ -1,33 +1,72 @@
 import os
+import random
 import subprocess
 import time
 import logging
-from typing import Tuple
+import json
+from typing import Tuple, Dict
 from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
 import argparse
 
+
 # Load environment variables
 load_dotenv()
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
+'''
+TODO: make these constants relative to where the script is running, or if these
+    are not defined when main() runs
+    make run a prompt method run that will fill in these values,
+    and then save their response in the yml file.
+
+    maybe try sqlite as a persistent data store?
+'''
 # Constants
-DEST_PATH = os.path.abspath("/Users/diegoguisande/Desktop/PARA/Projects_1/youtube_summary_py")
+DEST_PATH = os.path.abspath(
+    "/Users/diegoguisande/Desktop/PARA/Projects_1/youtube_summary_py")
 AUDIO_PATH = os.path.join(DEST_PATH, "audio")
 TRANSCRIPTION_PATH = os.path.join(DEST_PATH, "transcriptions")
 OBSIDIAN_BASE_PATH = "/Users/diegoguisande/Library/Mobile Documents/iCloud~md~obsidian/Documents/Second Brain/PARA"
 
 
+def load_prompt_info(type: str, transcript: str, url: str):
+    context = {
+        'transcript': transcript,
+        'url': url,
+    }
+
+    with open("prompt.json", "r") as file:
+        data = json.load(file)
+
+        if type not in ["user", "system"]:
+            raise Exception("incorrect prompt data request")
+
+        if type == "system":
+            return data["system_info"]
+        elif type == "user":
+            # return data["normal"]
+
+            formatted = data["normal"]["content"].format(**context)
+
+            return {'role': data["normal"]["role"], 'content': formatted}
+
+
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="YouTube Video Summarizer")
     parser.add_argument("--url", help="YouTube video URL", required=True)
-    parser.add_argument("--filename", help="Output filename (without extension)", required=True)
-    parser.add_argument("--dest", type=int, choices=[1, 2, 3, 4], help="Destination folder (1: Projects, 2: Areas, 3: Resources, 4: Archives)", required=True)
-    parser.add_argument("--keep", help="if you want to keep the audio and raw transcription")
+    parser.add_argument(
+        "--filename", help="Output filename (without extension)", required=True)
+    parser.add_argument("--dest", type=int, choices=[
+                        1, 2, 3, 4], help="Destination folder (1: Projects, 2: Areas, 3: Resources, 4: Archives)", required=True)
+    parser.add_argument(
+        "--keep", help="if you want to keep the audio and raw transcription")
     return parser.parse_args()
+    # TODO: add an argument for outputting the results to a nvim buffer or just a file in the current directory
 
 
 def download_video_audio(url: str, filename: str) -> str:
@@ -35,13 +74,19 @@ def download_video_audio(url: str, filename: str) -> str:
     output_path = os.path.join(AUDIO_PATH, f"{filename}.mp3")
 
     if os.path.exists(output_path):
-        raise FileExistsError(f"File {output_path} already exists")
+        # raise FileExistsError(f"File {output_path} already exists")
+        print(
+            f"File {output_path} already exists\nCreating duplicate with different name")
+        # Generates a random number between 1 and 100
+        random_num = random.randint(1, 100)
+        output_path = os.path.join(AUDIO_PATH, f"{filename}-{random_num}.mp3")
 
     bash_command = f"yt-dlp --progress -x --audio-format mp3 --output {output_path} {url}"
 
     with tqdm(total=100, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}") as pbar:
         pbar.set_description("Downloading video")
-        process = subprocess.Popen(bash_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(
+            bash_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         while True:
             output = process.stdout.readline().decode()
             if process.poll() is not None and output == '':
@@ -74,13 +119,18 @@ def transcribe_mp3_file(filename: str) -> Tuple[OpenAI, str]:
 
     return client, transcription.text
 
+# TODO: use gpt-4 instead of 3.5, missed some details in my last summary
+# TODO: have a section inside of yaml that use can give specific details to look for in a certain video.
+
 
 def ask_gpt_for_summary(client: OpenAI, transcript: str, url: str) -> str:
     completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            {"role": "system", "content": "You are a helpful assistant. You are helping me summarize and write actionable insights from transcriptions of youtube videos."},
-            {"role": "user", "content": f"Hello! Can you help me summarize and write a detailed, yet concise document from this transcript? \n {transcript}, also at the bottom of the summary can you put this url: {url} underneath a h2 md heading like this ![](<insert-url-here>) "}
+            # system prompt
+            load_prompt_info("system", transcript, url),
+            load_prompt_info("user", transcript, url),
+            # user prompt
         ]
     )
     return completion.choices[0].message.content
@@ -88,7 +138,8 @@ def ask_gpt_for_summary(client: OpenAI, transcript: str, url: str) -> str:
 
 def save_file_to_obsidian(location: int, transcript: str, filename: str) -> None:
     folder_names = {1: "Projects", 2: "Areas", 3: "Resources", 4: "Archives"}
-    folder_name = folder_names.get(location, "Archives")  # Default to Archives if invalid input
+    # Default to Archives if invalid input
+    folder_name = folder_names.get(location, "Archives")
     obsidian_path = os.path.join(OBSIDIAN_BASE_PATH, folder_name)
 
     os.makedirs(obsidian_path, exist_ok=True)
