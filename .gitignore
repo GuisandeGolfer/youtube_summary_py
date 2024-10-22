@@ -5,3 +5,4 @@ env/
 transcriptions/
 venv
 __pycache__/
+*.db

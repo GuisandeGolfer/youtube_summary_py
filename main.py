@@ -4,6 +4,7 @@ import subprocess
 import time
 import logging
 import json
+from save_transcript_to_db import NewFileHandler
 from typing import Tuple, Dict
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -43,13 +44,17 @@ def load_prompt_info(type: str, transcript: str, url: str):
     with open("prompt.json", "r") as file:
         data = json.load(file)
 
-        if type not in ["user", "system"]:
+        if type not in ["normal", "detailed", "latin"]:
             raise Exception("incorrect prompt data request")
 
-        if type == "system":
-            return data["system_info"]
-        elif type == "user":
-            # return data["normal"]
+        if type == "normal":
+            return data["normal"]
+        elif type == "detailed":
+            return data["detailed"]
+        else:
+            return data["latin"]
+
+        #TODO: fix this
 
             formatted = data["normal"]["content"].format(**context)
 
@@ -63,10 +68,10 @@ def parse_arguments() -> argparse.Namespace:
         "--filename", help="Output filename (without extension)", required=True)
     parser.add_argument("--dest", type=int, choices=[
                         1, 2, 3, 4], help="Destination folder (1: Projects, 2: Areas, 3: Resources, 4: Archives)", required=True)
+    parser.add_argument("--type", description="The type of summary you are asking OpenAI", required=True)
     parser.add_argument(
         "--keep", help="if you want to keep the audio and raw transcription")
     return parser.parse_args()
-    # TODO: add an argument for outputting the results to a nvim buffer or just a file in the current directory
 
 
 def download_video_audio(url: str, filename: str) -> str:
@@ -148,10 +153,10 @@ def save_file_to_obsidian(location: int, transcript: str, filename: str) -> None
 
     logging.info(f"File saved to Obsidian inside of {obsidian_path}")
 
-    logging.info(f"deleting audio and raw transcription of {filename}")
+    logging.info(f"deleting audio of {filename}")
 
     os.remove(f"{AUDIO_PATH}/{filename}.mp3")
-    os.remove(f"{TRANSCRIPTION_PATH}/{filename}.txt")
+    # os.remove(f"{TRANSCRIPTION_PATH}/{filename}.txt")
 
 
 def main():
@@ -162,7 +167,15 @@ def main():
         client, transcription = transcribe_mp3_file(file_name)
         summary = ask_gpt_for_summary(client, transcription, args.url)
         save_file_to_obsidian(args.dest, summary, file_name)
+
         logging.info("Process completed successfully")
+        logging.info("Saving video transcription data to sqlite database")
+
+        file_handler = NewFileHandler("./transcriptions.db", transcription, args.url)
+
+        file_handler.insert_transcription_into_db()
+
+
     except Exception as e:
         logging.error(f"An error occurred: {str(e)}")
 

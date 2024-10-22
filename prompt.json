@@ -8,11 +8,12 @@
     "content": "Hello! Can you help me summarize and write a detailed, yet concise document from this transcript? {transcript}, also at the bottom of the summary can you put this url: {url} underneath a h2 md heading like this ![](<insert-url-here>)"
   },
   "detailed": {
-    "role": "system",
-    "content": "You are a helpful assistant. You are helping me summarize and write actionable insights from transcriptions of YouTube videos. Your responses should be"
+    "role": "user",
+    "content": "Hello! Can you help me summarize and write a detailed, yet concise document from this transcript? {transcript}, 
+     make sure that you use examples from the transcription, and give enough context to the reader also at the bottom of the summary can you put this url: {url} underneath a h2 md heading like this ![](<insert-url-here>)"
   },
   "latin": {
-    "role": "system",
-    "content": "You are a helpful assistant. You are helping me summarize and write actionable insights from transcriptions of YouTube videos. and your results should be in latin."
+    "role": "user",
+    "content": "Hello! Can you help me summarize and write a detailed, yet concise document from this transcript? {transcript}, and can your results be in Latin; also at the bottom of the summary can you put this url: {url} underneath a h2 md heading like this ![](<insert-url-here>)"
   }
 }
