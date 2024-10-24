@@ -35,30 +35,25 @@ TRANSCRIPTION_PATH = os.path.join(DEST_PATH, "transcriptions")
 OBSIDIAN_BASE_PATH = "/Users/diegoguisande/Library/Mobile Documents/iCloud~md~obsidian/Documents/Second Brain/PARA"
 
 
-def load_prompt_info(type: str, transcript: str, url: str):
-    context = {
-        'transcript': transcript,
-        'url': url,
-    }
+def format_json(prompt_file: Dict[str, Dict[str, str]], detail_depth: str, transcript: str, url: str):
+    data_formatting = { 'transcript': transcript, 'url': url }
+
+    try:
+        content = prompt_file[detail_depth]["content"].format(**data_formatting)
+    except KeyError:
+        raise KeyError("key error with prompt_file")
+
+    return {'role': "user", 'content': content}
+
+
+def load_prompt_info(detail_depth: str, transcript: str, url: str):
+    if detail_depth not in ["normal", "detailed", "latin"]:
+        raise ValueError("incorrect prompt data request")
 
     with open("prompt.json", "r") as file:
         data = json.load(file)
 
-        if type not in ["normal", "detailed", "latin"]:
-            raise Exception("incorrect prompt data request")
-
-        if type == "normal":
-            return data["normal"]
-        elif type == "detailed":
-            return data["detailed"]
-        else:
-            return data["latin"]
-
-        #TODO: fix this
-
-            formatted = data["normal"]["content"].format(**context)
-
-            return {'role': data["normal"]["role"], 'content': formatted}
+    return format_json(data, detail_depth, transcript, url) 
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -68,7 +63,7 @@ def parse_arguments() -> argparse.Namespace:
         "--filename", help="Output filename (without extension)", required=True)
     parser.add_argument("--dest", type=int, choices=[
                         1, 2, 3, 4], help="Destination folder (1: Projects, 2: Areas, 3: Resources, 4: Archives)", required=True)
-    parser.add_argument("--type", description="The type of summary you are asking OpenAI", required=True)
+    parser.add_argument("--type", help="The type of summary you are asking OpenAI", required=True)
     parser.add_argument(
         "--keep", help="if you want to keep the audio and raw transcription")
     return parser.parse_args()
@@ -109,8 +104,11 @@ def transcribe_mp3_file(filename: str) -> Tuple[OpenAI, str]:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     audio_file_path = os.path.join(AUDIO_PATH, f"{filename}.mp3")
 
+    # TODO: this is where my script failed last
+
     with open(audio_file_path, "rb") as audio_file, tqdm(total=100, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}") as pbar:
         pbar.set_description("Transcribing audio")
+        # TODO: this is where my script failed last
         # TODO: add a spinning ASCII wheel instead of using tqdm
         transcription = client.audio.transcriptions.create(
             model="whisper-1",
@@ -129,13 +127,12 @@ def transcribe_mp3_file(filename: str) -> Tuple[OpenAI, str]:
 
 
 def ask_gpt_for_summary(client: OpenAI, transcript: str, url: str) -> str:
+    # TODO: check load_prompt_info results manually
     completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
         messages=[
-            # system prompt
             load_prompt_info("system", transcript, url),
-            load_prompt_info("user", transcript, url),
-            # user prompt
+            load_prompt_info("detailed", transcript, url),
         ]
     )
     return completion.choices[0].message.content
