@@ -78,7 +78,7 @@ def transcribe_mp3_file(filename: str) -> Tuple[OpenAI, str]:
 def ask_gpt_for_summary(client: OpenAI, transcript: str, url: str) -> str:
     completion = client.chat.completions.create(
         model="gpt-3.5-turbo",
-        messages=[
+        messages=[  # TODO: move these over to yml files
             {"role": "system", "content": "You are a helpful assistant. You are helping me summarize and write actionable insights from transcriptions of youtube videos."},
             {"role": "user", "content": f"Hello! Can you help me summarize and write a detailed, yet concise document from this transcript? \n {transcript}, also at the bottom of the summary can you put this url: {url} underneath a h2 md heading like this ![](<insert-url-here>) "}
         ]
