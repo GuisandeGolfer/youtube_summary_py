@@ -9,8 +9,9 @@ from typing import Tuple, Dict
 from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
+from utils import split_transcription
 import argparse
-
+import ffmpeg
 
 # Load environment variables
 load_dotenv()
@@ -27,33 +28,32 @@ TODO: make these constants relative to where the script is running, or if these
 
     maybe try sqlite as a persistent data store?
 '''
+
+
 # Constants
 DEST_PATH = os.path.abspath(
     "/Users/diegoguisande/Desktop/PARA/Projects_1/youtube_summary_py")
 AUDIO_PATH = os.path.join(DEST_PATH, "audio")
 TRANSCRIPTION_PATH = os.path.join(DEST_PATH, "transcriptions")
-OBSIDIAN_BASE_PATH = "/Users/diegoguisande/Library/Mobile Documents/iCloud~md~obsidian/Documents/Second Brain/PARA"
+OBSIDIAN_BASE_PATH = "/Users/diegoguisande/Desktop/obsidian/"
 
 
-def format_json(prompt_file: Dict[str, Dict[str, str]], detail_depth: str, transcript: str, url: str):
+def format_json(prompt_file: Dict[str, Dict[str, str]], transcript: str, url: str):
     data_formatting = { 'transcript': transcript, 'url': url }
 
     try:
-        content = prompt_file[detail_depth]["content"].format(**data_formatting)
+        content = prompt_file["normal"]["content"].format(**data_formatting)
     except KeyError:
         raise KeyError("key error with prompt_file")
 
     return {'role': "user", 'content': content}
 
 
-def load_prompt_info(detail_depth: str, transcript: str, url: str):
-    if detail_depth not in ["normal", "detailed", "latin"]:
-        raise ValueError("incorrect prompt data request")
-
+def load_prompt_info(transcript: str, url: str):
     with open("prompt.json", "r") as file:
         data = json.load(file)
 
-    return format_json(data, detail_depth, transcript, url) 
+    return format_json(data, transcript, url) 
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -63,7 +63,7 @@ def parse_arguments() -> argparse.Namespace:
         "--filename", help="Output filename (without extension)", required=True)
     parser.add_argument("--dest", type=int, choices=[
                         1, 2, 3, 4], help="Destination folder (1: Projects, 2: Areas, 3: Resources, 4: Archives)", required=True)
-    parser.add_argument("--type", help="The type of summary you are asking OpenAI", required=True)
+    #parser.add_argument("--type", help="The type of summary you are asking OpenAI", required=True)
     parser.add_argument(
         "--keep", help="if you want to keep the audio and raw transcription")
     return parser.parse_args()
@@ -100,48 +100,74 @@ def download_video_audio(url: str, filename: str) -> str:
     return filename
 
 
+def split_audio_file(filename: str, segment_duration: int = 1400) -> list:
+    audio_file_path = os.path.join(AUDIO_PATH, f"{filename}.mp3")
+    segments = []
+
+    # Get the total duration of the audio file
+    probe = ffmpeg.probe(audio_file_path)
+    total_duration = float(probe['format']['duration'])
+
+    # Calculate the number of segments
+    num_segments = int(total_duration // segment_duration) + 1
+
+    for i in range(num_segments):
+        start_time = i * segment_duration
+        segment_filename = f"{filename}_part{i}.mp3"
+        segment_path = os.path.join(AUDIO_PATH, segment_filename)
+
+        # Use ffmpeg to extract the segment
+        ffmpeg.input(audio_file_path, ss=start_time, t=segment_duration).output(segment_path).run()
+
+        segments.append(segment_filename)
+
+    return segments
+
+def transcribe_audio_segments(client: OpenAI, segments: list) -> str:
+    full_transcription = []
+
+    for segment in segments:
+        audio_file_path = os.path.join(AUDIO_PATH, segment)
+        with open(audio_file_path, "rb") as audio_file:
+            transcription = client.audio.transcriptions.create(
+                model="gpt-4o-mini-transcribe",
+                file=audio_file,
+            )
+            full_transcription.append(transcription.text)
+
+    return " ".join(full_transcription)
+
 def transcribe_mp3_file(filename: str) -> Tuple[OpenAI, str]:
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    audio_file_path = os.path.join(AUDIO_PATH, f"{filename}.mp3")
-
-    # TODO: this is where my script failed last
-
-    with open(audio_file_path, "rb") as audio_file, tqdm(total=100, bar_format="{l_bar}{bar}| {n_fmt}/{total_fmt}") as pbar:
-        pbar.set_description("Transcribing audio")
-        # TODO: this is where my script failed last
-        # TODO: add a spinning ASCII wheel instead of using tqdm
-        transcription = client.audio.transcriptions.create(
-            model="whisper-1",
-            file=audio_file,
-        )
-        pbar.update(100)
+    segments = split_audio_file(filename)
+    full_transcription = transcribe_audio_segments(client, segments)
 
     os.makedirs(TRANSCRIPTION_PATH, exist_ok=True)
     with open(os.path.join(TRANSCRIPTION_PATH, f"{filename}.txt"), 'w') as file:
-        file.write(transcription.text)
+        file.write(full_transcription)
 
-    return client, transcription.text
-
-# TODO: use gpt-4 instead of 3.5, missed some details in my last summary
-# TODO: have a section inside of yaml that use can give specific details to look for in a certain video.
+    return client, full_transcription
 
 
 def ask_gpt_for_summary(client: OpenAI, transcript: str, url: str) -> str:
-    # TODO: check load_prompt_info results manually
-    completion = client.chat.completions.create(
-        model="gpt-3.5-turbo",
-<<<<<<< HEAD
-        messages=[  # TODO: move these over to yml files
-            {"role": "system", "content": "You are a helpful assistant. You are helping me summarize and write actionable insights from transcriptions of youtube videos."},
-            {"role": "user", "content": f"Hello! Can you help me summarize and write a detailed, yet concise document from this transcript? \n {transcript}, also at the bottom of the summary can you put this url: {url} underneath a h2 md heading like this ![](<insert-url-here>) "}
-=======
-        messages=[
-            load_prompt_info("system", transcript, url),
-            load_prompt_info("detailed", transcript, url),
->>>>>>> origin/main
-        ]
-    )
-    return completion.choices[0].message.content
+    max_tokens = 2048  # Adjust based on the model's token limit
+    chunks = split_transcription(transcript, max_tokens)
+    summaries = []
+
+    for chunk in chunks:
+        completion = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                load_prompt_info(chunk, url),
+                load_prompt_info(chunk, url),
+            ]
+        )
+        summaries.append(completion.choices[0].message.content)
+
+    # Combine all summaries into a final summary
+    final_summary = "\n".join(summaries)
+    print(final_summary)
+    return final_summary
 
 
 def save_file_to_obsidian(location: int, transcript: str, filename: str) -> None:
@@ -160,7 +186,6 @@ def save_file_to_obsidian(location: int, transcript: str, filename: str) -> None
 
     os.remove(f"{AUDIO_PATH}/{filename}.mp3")
     # os.remove(f"{TRANSCRIPTION_PATH}/{filename}.txt")
-
 
 def main():
     args = parse_arguments()
