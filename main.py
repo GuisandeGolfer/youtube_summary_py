@@ -1,17 +1,11 @@
-import os
-import random
-import subprocess
-import time
-import logging
-import json
+import os, glob, random, subprocess, time, logging, json, argparse
 from save_transcript_to_db import NewFileHandler
+from audio import split_audio_file
 from typing import Tuple, Dict
 from dotenv import load_dotenv
 from openai import OpenAI
 from tqdm import tqdm
-from utils import split_transcription
-import argparse
-import ffmpeg
+from utils import split_transcription, format_json, load_prompt_info, delete_files_with_name
 
 # Load environment variables
 load_dotenv()
@@ -20,40 +14,11 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-'''
-TODO: make these constants relative to where the script is running, or if these
-    are not defined when main() runs
-    make run a prompt method run that will fill in these values,
-    and then save their response in the yml file.
-
-    maybe try sqlite as a persistent data store?
-'''
-
-
 # Constants
-DEST_PATH = os.path.abspath(
-    "/Users/diegoguisande/Desktop/PARA/Projects_1/youtube_summary_py")
+DEST_PATH = os.path.abspath("/Users/diegoguisande/Desktop/PARA/Projects_1/youtube_summary_py")
 AUDIO_PATH = os.path.join(DEST_PATH, "audio")
 TRANSCRIPTION_PATH = os.path.join(DEST_PATH, "transcriptions")
 OBSIDIAN_BASE_PATH = "/Users/diegoguisande/Desktop/obsidian/"
-
-
-def format_json(prompt_file: Dict[str, Dict[str, str]], transcript: str, url: str):
-    data_formatting = { 'transcript': transcript, 'url': url }
-
-    try:
-        content = prompt_file["normal"]["content"].format(**data_formatting)
-    except KeyError:
-        raise KeyError("key error with prompt_file")
-
-    return {'role': "user", 'content': content}
-
-
-def load_prompt_info(transcript: str, url: str):
-    with open("prompt.json", "r") as file:
-        data = json.load(file)
-
-    return format_json(data, transcript, url) 
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -99,29 +64,6 @@ def download_video_audio(url: str, filename: str) -> str:
 
     return filename
 
-
-def split_audio_file(filename: str, segment_duration: int = 1400) -> list:
-    audio_file_path = os.path.join(AUDIO_PATH, f"{filename}.mp3")
-    segments = []
-
-    # Get the total duration of the audio file
-    probe = ffmpeg.probe(audio_file_path)
-    total_duration = float(probe['format']['duration'])
-
-    # Calculate the number of segments
-    num_segments = int(total_duration // segment_duration) + 1
-
-    for i in range(num_segments):
-        start_time = i * segment_duration
-        segment_filename = f"{filename}_part{i}.mp3"
-        segment_path = os.path.join(AUDIO_PATH, segment_filename)
-
-        # Use ffmpeg to extract the segment
-        ffmpeg.input(audio_file_path, ss=start_time, t=segment_duration).output(segment_path).run()
-
-        segments.append(segment_filename)
-
-    return segments
 
 def transcribe_audio_segments(client: OpenAI, segments: list) -> str:
     full_transcription = []
@@ -171,7 +113,8 @@ def ask_gpt_for_summary(client: OpenAI, transcript: str, url: str) -> str:
 
 
 def save_file_to_obsidian(location: int, transcript: str, filename: str) -> None:
-    folder_names = {1: "Projects", 2: "Areas", 3: "Resources", 4: "Archives"}
+    folder_names = {1: "1_Projects", 2: "2_Areas", 3: "3_Resources", 4: "4_Archives"}
+
     # Default to Archives if invalid input
     folder_name = folder_names.get(location, "Archives")
     obsidian_path = os.path.join(OBSIDIAN_BASE_PATH, folder_name)
@@ -182,10 +125,9 @@ def save_file_to_obsidian(location: int, transcript: str, filename: str) -> None
 
     logging.info(f"File saved to Obsidian inside of {obsidian_path}")
 
-    logging.info(f"deleting audio of {filename}")
+    logging.info(f"deleting audio files for video: {filename}")
 
-    os.remove(f"{AUDIO_PATH}/{filename}.mp3")
-    # os.remove(f"{TRANSCRIPTION_PATH}/{filename}.txt")
+    delete_files_with_name(obsidian_path, filename)
 
 def main():
     args = parse_arguments()
