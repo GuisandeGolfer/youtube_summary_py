@@ -127,7 +127,7 @@ def save_file_to_obsidian(location: int, transcript: str, filename: str) -> None
 
     logging.info(f"deleting audio files for video: {filename}")
 
-    delete_files_with_name(obsidian_path, filename)
+    delete_files_with_name(AUDIO_PATH, filename)
 
 def main():
     args = parse_arguments()

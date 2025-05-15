@@ -59,6 +59,7 @@ def delete_files_with_name(base_path: str, filename: str):
     
     # Use glob to find all files matching the pattern
     files_to_delete = glob.glob(pattern)
+    print(files_to_delete)
     
     # Delete each file found
     for file_path in files_to_delete:
