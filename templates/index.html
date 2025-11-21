@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Video Summarizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .result.active {
+            display: block;
+        }
+
+        .result h2 {
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .summary-content {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            line-height: 1.8;
+            color: #333;
+            white-space: pre-wrap;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #28a745;
+        }
+
+        .error {
+            display: none;
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 4px solid #dc3545;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .status-text {
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>YouTube Video Summarizer</h1>
+        <p class="subtitle">Enter a YouTube URL to get a summary and save the transcription</p>
+
+        <form id="videoForm">
+            <div class="input-group">
+                <label for="videoUrl">YouTube URL</label>
+                <input
+                    type="text"
+                    id="videoUrl"
+                    name="url"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    required
+                >
+            </div>
+
+            <button type="submit" id="submitBtn">Process Video</button>
+        </form>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p class="status-text" id="statusText">Processing your video...</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="result" id="result">
+            <h2>Summary</h2>
+            <div class="summary-content" id="summaryContent"></div>
+            <div class="success-message">
+                Transcription successfully saved to database!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('videoForm');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        const error = document.getElementById('error');
+        const submitBtn = document.getElementById('submitBtn');
+        const statusText = document.getElementById('statusText');
+        const summaryContent = document.getElementById('summaryContent');
+
+        const statusMessages = [
+            'Downloading video audio...',
+            'Transcribing audio...',
+            'Generating summary...',
+            'Saving to database...'
+        ];
+
+        let statusIndex = 0;
+        let statusInterval;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const url = document.getElementById('videoUrl').value;
+
+            // Reset UI
+            loading.classList.add('active');
+            result.classList.remove('active');
+            error.classList.remove('active');
+            submitBtn.disabled = true;
+            statusIndex = 0;
+            statusText.textContent = statusMessages[0];
+
+            // Rotate status messages
+            statusInterval = setInterval(() => {
+                statusIndex = (statusIndex + 1) % statusMessages.length;
+                statusText.textContent = statusMessages[statusIndex];
+            }, 5001);
+
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ url }),
+                });
+
+                const data = await response.json();
+
+                clearInterval(statusInterval);
+                loading.classList.remove('active');
+
+                if (response.ok && data.success) {
+                    summaryContent.textContent = data.summary;
+                    result.classList.add('active');
+                } else {
+                    error.textContent = data.error || 'An error occurred';
+                    error.classList.add('active');
+                }
+            } catch (err) {
+                clearInterval(statusInterval);
+                loading.classList.remove('active');
+                error.textContent = 'Network error: ' + err.message;
+                error.classList.add('active');
+            } finally {
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

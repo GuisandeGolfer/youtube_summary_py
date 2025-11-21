@@ -1,65 +1,141 @@
-# AI YouTube FOMO Utility
+# YouTube Video Summarizer - Web Application
 
-## TLDR;
+A simple web application to summarize YouTube videos and save transcriptions to a SQLite database.
 
-> give this script a link to a YouTube video, and it will ask ChatGPT for detailed summary of the video.
-> Saving you the time of actually watching it.
+## Features
 
-### Steps Completed so Far:
+- Single-page web interface
+- Download and transcribe YouTube videos
+- Generate AI-powered summaries using OpenAI GPT
+- Save transcriptions to SQLite database for later vectorization
+- Clean, organized code split across logical modules
 
-1. [x] recieve link to youtube video.
-2. [x] download youtube video audio.
-3. [x] transcribe audio file through OpenAI library API call.
-4. [x] send a prompt to ChatGPT with transcription of content.
-5. [x] Create a new repo and a read-me with a video that explains how it works.
-6. [x] getting an error while using py-tube (only workarounds on StackOverflow)
-    - [x] switch the script from using pytube and use yt-dlp python lib instead.
+## Project Structure
 
-### Things to improve later on:
-
-1. [x] since the api key is being loaded in from *password-store*, I may have to enter the encryption key after time passes
-    - made a .env file with my API key hard-coded
-2. [x] maybe add an ASCII moving loading screen while the API calls are happening?
-    - some kind of fun animation
-    - found a cool animation library and working on implementing for API calls, and yt-dlp.
-    - [x] added a tqdm progress bar for yt-dlp and openAI calls
-3. [ ] create a chrome extension for this?
-    - Youtube AI summarizer
-4. [ ] or make a website that has a one-time payment for a license to use a web interface that stores their summaries,
-        "watch" history, and all they need is a one-time payment of $50 (rate limit API calls and do cost analysis).
-5. [ ] buy ShipFast as a template for releasing the SaaS. ($169 - $199)
-6. [ ] have the option to give it a youtube playlist, and iterate the process of summarizing videos
-            - maybe create a playlist mega-summary.
-
-## How to Use after Cloning Repo
----
-
-1. Create a virtual environment
-
-```python
-python3 -m venv <insert-virtual-env-name-here>
+```
+.
+├── app.py                  # Flask web server and routes
+├── youtube.py             # YouTube video downloading functions
+├── transcription.py       # Audio transcription using OpenAI Whisper
+├── summarization.py       # Summary generation using GPT
+├── database.py            # SQLite database operations
+├── templates/
+│   └── index.html        # Web interface
+├── prompt.json            # Prompt templates for summarization
+├── .env                   # Environment variables (API keys)
+└── transcriptions.db      # SQLite database (auto-created)
 ```
 
-2. Activate virtual environment
+## Setup
 
-```python
-source <path-to-activate-file-in-project-dir>
+### 1. Install uv
+
+Install [uv](https://github.com/astral-sh/uv) if you haven't already:
+
+```bash
+# macOS/Linux
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Or with Homebrew
+brew install uv
 ```
 
-3. Replace hard coded folder paths inside of main.py
+### 2. Install Dependencies
 
-- on lines: 10, 62, 107
+Make sure you have ffmpeg installed:
 
-- you may also need to create an audio directory to save your 
-mp3 files if you want them.
-
-4. Install dependencies & run main.py
-
-```python
-pip install requirements.txt && python3 main.py
+```bash
+# Install ffmpeg (macOS)
+brew install ffmpeg
 ```
 
+Then sync the project dependencies with uv:
 
+```bash
+uv sync
+```
 
+This will create a virtual environment and install all dependencies automatically.
 
+### 3. Set Up Environment Variables
 
+Create a `.env` file in the project root with your OpenAI API key:
+
+```
+OPENAI_API_KEY=your_api_key_here
+```
+
+### 4. Run the Application
+
+```bash
+uv run python app.py
+```
+
+The server will start on `http://localhost:5000`
+
+Alternatively, activate the virtual environment and run directly:
+
+```bash
+source .venv/bin/activate
+python app.py
+```
+
+## Usage
+
+1. Open your browser and navigate to `http://localhost:5000`
+2. Enter a YouTube URL in the input field
+3. Click "Process Video"
+4. Wait for the process to complete (this may take a few minutes depending on video length)
+5. View the summary on the page
+6. The transcription is automatically saved to `transcriptions.db`
+
+## Database Schema
+
+The SQLite database contains a `videos` table with the following structure:
+
+```sql
+CREATE TABLE videos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    url TEXT,
+    video_length INTEGER,
+    channel TEXT,
+    transcription TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+)
+```
+
+## How It Works
+
+1. **Download** - The YouTube video's audio is downloaded using yt-dlp
+2. **Split** - Long audio files are split into ~23-minute segments using ffmpeg
+3. **Transcribe** - Each segment is transcribed using OpenAI's Whisper API
+4. **Summarize** - The full transcription is summarized using GPT-3.5-turbo
+5. **Save** - The transcription and video metadata are saved to SQLite
+6. **Display** - The summary is shown on the webpage
+7. **Cleanup** - Audio files are automatically deleted after processing
+
+## Quick Reference
+
+```bash
+# Install dependencies
+uv sync
+
+# Run the app
+uv run python app.py
+
+# Add a new dependency
+uv add package-name
+
+# Update dependencies
+uv lock --upgrade
+```
+
+## Notes
+
+- Audio files are automatically cleaned up after transcription
+- If a video already exists in the database, it will be updated
+- Large videos may take several minutes to process
+- You need a valid OpenAI API key with access to Whisper and GPT models
+- This project uses [uv](https://github.com/astral-sh/uv) for fast, reliable dependency management
+- The `requirements.txt` file is kept for compatibility but `pyproject.toml` is the source of truth

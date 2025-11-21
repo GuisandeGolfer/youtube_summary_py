@@ -1,8 +1,21 @@
 .env
 .DS_Store
 audio/
-env/
 transcriptions/
-venv
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# Python
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Databases
 *.db
+
+# UV
+uv.lock
