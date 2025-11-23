@@ -10,7 +10,7 @@ then implement the code to make them pass. This ensures you:
 import pytest
 import sqlite3
 from unittest.mock import patch, MagicMock
-from database import (
+from src.core.database import (
     create_videos_table,
     extract_video_info,
     save_transcription_to_db,

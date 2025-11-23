@@ -7,7 +7,7 @@ These tests demonstrate how to mock system commands and file operations.
 import pytest
 import os
 from unittest.mock import patch, MagicMock, call
-from transcription import (
+from src.core.transcription import (
     split_audio_file,
     transcribe_audio_segments,
     cleanup_audio_files,

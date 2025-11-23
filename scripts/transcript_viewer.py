@@ -37,13 +37,14 @@ from typing import Optional, Tuple, List, Dict
 
 def get_db_path() -> str:
     """
-    Get the path to transcriptions.db in the same directory as this script.
+    Get the path to transcriptions.db in the data directory.
 
     Returns:
         str: Absolute path to transcriptions.db
     """
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(script_dir, "transcriptions.db")
+    project_root = os.path.dirname(script_dir)  # Go up one level to project root
+    return os.path.join(project_root, "data", "transcriptions.db")
 
 
 def get_table_columns(db_path: str) -> List[str]:

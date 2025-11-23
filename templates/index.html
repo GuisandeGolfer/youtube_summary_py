@@ -165,14 +165,198 @@
             font-weight: 600;
             margin-top: 10px;
         }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #666;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            width: auto;
+        }
+
+        .tab:hover {
+            color: #667eea;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Queue specific styles */
+        .queue-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .queue-input-group input {
+            flex: 1;
+        }
+
+        .queue-input-group button {
+            width: auto;
+            padding: 15px 30px;
+        }
+
+        .queue-list {
+            margin: 20px 0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .queue-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border-left: 4px solid #e0e0e0;
+        }
+
+        .queue-item.downloading {
+            border-left-color: #ffc107;
+        }
+
+        .queue-item.transcribing {
+            border-left-color: #17a2b8;
+        }
+
+        .queue-item.summarizing {
+            border-left-color: #007bff;
+        }
+
+        .queue-item.completed {
+            border-left-color: #28a745;
+        }
+
+        .queue-item.failed {
+            border-left-color: #dc3545;
+        }
+
+        .queue-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .queue-item-title {
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .queue-item-status {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+        }
+
+        .queue-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .queue-actions button {
+            flex: 1;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .empty-queue {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .queue-stats {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+        }
+
+        .stat {
+            flex: 1;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 0.85em;
+            color: #666;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>YouTube Video Summarizer</h1>
-        <p class="subtitle">Enter a YouTube URL to get a summary and save the transcription</p>
+        <p class="subtitle">Process single videos or queue multiple videos for batch processing</p>
 
-        <form id="videoForm">
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="single">Single Video</button>
+            <button class="tab" data-tab="queue">Queue Mode</button>
+        </div>
+
+        <!-- Single Video Tab -->
+        <div class="tab-content active" id="single-content">
+            <form id="videoForm">
             <div class="input-group">
                 <label for="videoUrl">YouTube URL</label>
                 <input
@@ -201,7 +385,62 @@
                 Transcription successfully saved to database!
             </div>
         </div>
+        </div>
+        <!-- End Single Video Tab -->
+
+        <!-- Queue Tab -->
+        <div class="tab-content" id="queue-content">
+            <!-- Queue Stats -->
+            <div class="queue-stats" id="queueStats">
+                <div class="stat">
+                    <div class="stat-value" id="statTotal">0</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="statPending">0</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="statActive">0</div>
+                    <div class="stat-label">Processing</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value" id="statCompleted">0</div>
+                    <div class="stat-label">Completed</div>
+                </div>
+            </div>
+
+            <!-- Add to Queue -->
+            <div class="queue-input-group">
+                <input
+                    type="text"
+                    id="queueUrl"
+                    placeholder="https://www.youtube.com/watch?v=..."
+                >
+                <button onclick="addToQueue()" id="addBtn">Add to Queue</button>
+            </div>
+
+            <!-- Queue List -->
+            <div class="queue-list" id="queueList">
+                <div class="empty-queue">
+                    No videos in queue. Add URLs above to get started.
+                </div>
+            </div>
+
+            <!-- Queue Actions -->
+            <div class="queue-actions">
+                <button onclick="startQueue()" id="startBtn">Start Processing</button>
+                <button onclick="clearQueue()" id="clearBtn" class="btn-danger">Clear Queue</button>
+            </div>
+
+            <div class="error" id="queueError"></div>
+        </div>
+        <!-- End Queue Tab -->
+
     </div>
+
+    <!-- External queue management script -->
+    <script src="{{ url_for('static', filename='js/queue.js') }}"></script>
 
     <script>
         const form = document.getElementById('videoForm');
@@ -270,6 +509,40 @@
             } finally {
                 submitBtn.disabled = false;
             }
+        });
+
+        // ====================================================================
+        // TAB SWITCHING
+        // ====================================================================
+
+        // Tab switching logic
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+
+                // Update active tab
+                tabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                // Update active content
+                tabContents.forEach(content => {
+                    if (content.id === `${tabName}-content`) {
+                        content.classList.add('active');
+                    } else {
+                        content.classList.remove('active');
+                    }
+                });
+
+                // Queue manager handles polling when switching to queue tab
+                if (tabName === 'queue' && queueManager) {
+                    queueManager.initialize();
+                } else if (queueManager) {
+                    queueManager.cleanup();
+                }
+            });
         });
     </script>
 </body>

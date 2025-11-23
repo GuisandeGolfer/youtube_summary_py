@@ -10,7 +10,7 @@ In TDD, we mock these to:
 import pytest
 import os
 from unittest.mock import patch, MagicMock, mock_open
-from summarization import (
+from src.core.summarization import (
     load_prompt_template,
     format_prompt,
     split_transcription,
