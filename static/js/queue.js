@@ -106,6 +106,11 @@ class QueueManager {
             if (response.ok && data.success) {
                 this.isProcessing = true;
                 this.startPolling(); // Start polling for updates
+
+                // Start breathing exercise
+                if (window.breathingExercise) {
+                    window.breathingExercise.start();
+                }
             } else {
                 this.showError(data.error || 'Failed to start queue');
                 this.elements.startBtn.disabled = false;
@@ -195,6 +200,11 @@ class QueueManager {
             this.elements.startBtn.disabled = stats.pending === 0;
             this.elements.clearBtn.disabled = stats.total === 0;
             this.elements.startBtn.textContent = 'Start Processing';
+
+            // Stop breathing exercise when processing completes
+            if (window.breathingExercise && window.breathingExercise.isRunning()) {
+                window.breathingExercise.stop();
+            }
         }
     }
 

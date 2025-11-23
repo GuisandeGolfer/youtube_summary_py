@@ -341,6 +341,122 @@
             color: #666;
             margin-top: 5px;
         }
+
+        /* Breathing Exercise Styles */
+        .breathing-container {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .breathing-header h3 {
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 1.5em;
+        }
+
+        .breathing-subtitle {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+
+        .breathing-circle-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+            min-height: 300px;
+        }
+
+        .breathing-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .breathing-circle.inhale {
+            transform: scale(1.5);
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            box-shadow: 0 15px 60px rgba(79, 172, 254, 0.5);
+        }
+
+        .breathing-circle.hold {
+            transform: scale(1.5);
+            background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%);
+            box-shadow: 0 15px 60px rgba(255, 216, 155, 0.5);
+        }
+
+        .breathing-circle.exhale {
+            transform: scale(1);
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            box-shadow: 0 10px 40px rgba(168, 237, 234, 0.4);
+        }
+
+        .breathing-circle.hold-out {
+            transform: scale(1);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
+        }
+
+        .breathing-text {
+            color: white;
+            font-size: 1.2em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .breathing-timer {
+            color: white;
+            font-size: 3em;
+            font-weight: 700;
+        }
+
+        .breathing-progress {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .breathing-phase {
+            font-size: 1em;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .breathing-cycle {
+            font-size: 1em;
+            color: #666;
+        }
+
+        .breathing-toggle-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .breathing-toggle-btn:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
     </style>
 </head>
 <body>
@@ -433,13 +549,36 @@
                 <button onclick="clearQueue()" id="clearBtn" class="btn-danger">Clear Queue</button>
             </div>
 
+            <!-- Breathing Exercise -->
+            <div class="breathing-container" id="breathingContainer" style="display: none;">
+                <div class="breathing-header">
+                    <h3>While You Wait - Breathing Exercise</h3>
+                    <p class="breathing-subtitle">4-4-6-2 Breathing Pattern</p>
+                </div>
+
+                <div class="breathing-circle-wrapper">
+                    <div class="breathing-circle" id="breathingCircle">
+                        <div class="breathing-text" id="breathingText">Breathe In</div>
+                        <div class="breathing-timer" id="breathingTimer">4</div>
+                    </div>
+                </div>
+
+                <div class="breathing-progress">
+                    <div class="breathing-phase" id="breathingPhase">Phase: Breathe In (4s)</div>
+                    <div class="breathing-cycle">Cycle: <span id="breathingCycleCount">1</span></div>
+                </div>
+
+                <button onclick="toggleBreathing()" id="breathingToggle" class="breathing-toggle-btn">Pause</button>
+            </div>
+
             <div class="error" id="queueError"></div>
         </div>
         <!-- End Queue Tab -->
 
     </div>
 
-    <!-- External queue management script -->
+    <!-- External scripts -->
+    <script src="{{ url_for('static', filename='js/breathing.js') }}"></script>
     <script src="{{ url_for('static', filename='js/queue.js') }}"></script>
 
     <script>

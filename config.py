@@ -29,4 +29,4 @@ FLASK_PORT = 5001
 FLASK_DEBUG = True
 
 # Queue processor settings
-QUEUE_MAX_WORKERS = 2  # Number of videos to process in parallel
+QUEUE_MAX_WORKERS = 3  # Number of videos to process in parallel
