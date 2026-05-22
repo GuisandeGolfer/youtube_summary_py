@@ -23,6 +23,12 @@ class VideoStatus(Enum):
     FAILED = "failed"
 
 
+class ActionType(Enum):
+    """Type of action to perform on the video"""
+    PROCESS = "process"  # Transcribe & summarize
+    DOWNLOAD = "download"  # Download only
+
+
 @dataclass
 class QueueItem:
     """
@@ -38,6 +44,8 @@ class QueueItem:
         title: Video title (populated after download)
         duration: Video duration in seconds (populated after download)
         added_at: Timestamp when item was added to queue
+        action_type: Type of action (process or download)
+        quality: Video quality for downloads (best, 1080p, etc.)
     """
     url: str
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -48,6 +56,8 @@ class QueueItem:
     title: str = ""
     duration: int = 0
     added_at: datetime = field(default_factory=datetime.now)
+    action_type: ActionType = ActionType.PROCESS
+    quality: str = "best"
 
     def to_dict(self) -> dict:
         """Convert to dictionary for JSON serialization"""
@@ -60,7 +70,9 @@ class QueueItem:
             'error': self.error,
             'title': self.title,
             'duration': self.duration,
-            'added_at': self.added_at.isoformat()
+            'added_at': self.added_at.isoformat(),
+            'action_type': self.action_type.value,
+            'quality': self.quality
         }
 
 
@@ -78,17 +90,19 @@ class VideoQueue:
         self.is_processing: bool = False
         self.active_workers: int = 0
 
-    def add(self, url: str) -> QueueItem:
+    def add(self, url: str, action_type: ActionType = ActionType.PROCESS, quality: str = "best") -> QueueItem:
         """
         Add a video URL to the queue.
 
         Args:
             url: YouTube video URL
+            action_type: Type of action (process or download)
+            quality: Video quality for downloads (best, 1080p, etc.)
 
         Returns:
             QueueItem: The created queue item
         """
-        item = QueueItem(url=url)
+        item = QueueItem(url=url, action_type=action_type, quality=quality)
         self.items.append(item)
         return item
 

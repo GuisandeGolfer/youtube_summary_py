@@ -5,6 +5,9 @@
 data/audio/
 data/*.db
 
+# Downloaded videos
+downloads/
+
 # Old directories (can be removed after migration)
 audio/
 transcriptions/

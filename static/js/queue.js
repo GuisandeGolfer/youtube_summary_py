@@ -16,6 +16,8 @@ class QueueManager {
         // DOM element references
         this.elements = {
             queueUrl: document.getElementById('queueUrl'),
+            queueAction: document.getElementById('queueAction'),
+            queueQuality: document.getElementById('queueQuality'),
             queueList: document.getElementById('queueList'),
             queueError: document.getElementById('queueError'),
             startBtn: document.getElementById('startBtn'),
@@ -38,7 +40,11 @@ class QueueManager {
             'failed': '❌'
         };
 
+        // Animation preference
+        this.selectedAnimation = this.loadAnimationPreference();
+
         this.initializeEventListeners();
+        this.initAnimationSelector();
     }
 
     /**
@@ -56,10 +62,86 @@ class QueueManager {
     }
 
     /**
+     * Load animation preference from localStorage
+     */
+    loadAnimationPreference() {
+        const saved = localStorage.getItem('waitingAnimation');
+        if (saved) {
+            return saved;
+        }
+        // Random default: 50/50 chance
+        return Math.random() < 0.5 ? 'breathing' : 'waves';
+    }
+
+    /**
+     * Save animation preference to localStorage
+     */
+    saveAnimationPreference(value) {
+        localStorage.setItem('waitingAnimation', value);
+        this.selectedAnimation = value;
+    }
+
+    /**
+     * Initialize animation selector radio buttons
+     */
+    initAnimationSelector() {
+        const breathingRadio = document.getElementById('animBreathing');
+        const wavesRadio = document.getElementById('animWaves');
+
+        if (!breathingRadio || !wavesRadio) return;
+
+        // Set initial selection
+        if (this.selectedAnimation === 'breathing') {
+            breathingRadio.checked = true;
+        } else {
+            wavesRadio.checked = true;
+        }
+
+        // Add change listeners
+        breathingRadio.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                this.saveAnimationPreference('breathing');
+                this.switchAnimation('breathing');
+            }
+        });
+
+        wavesRadio.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                this.saveAnimationPreference('waves');
+                this.switchAnimation('waves');
+            }
+        });
+    }
+
+    /**
+     * Switch between animations (can happen mid-processing)
+     */
+    switchAnimation(type) {
+        // Stop both animations
+        if (window.breathingExercise && window.breathingExercise.isRunning()) {
+            window.breathingExercise.stop();
+        }
+        if (window.waveAnimation && window.waveAnimation.isActive) {
+            window.waveAnimation.stop();
+        }
+
+        // Start selected animation if queue is processing
+        if (this.isProcessing) {
+            if (type === 'breathing' && window.breathingExercise) {
+                window.breathingExercise.start();
+            } else if (type === 'waves' && window.waveAnimation) {
+                window.waveAnimation.start();
+            }
+        }
+    }
+
+    /**
      * Add a video URL to the queue
      */
     async addToQueue() {
         const url = this.elements.queueUrl.value.trim();
+        const actionType = this.elements.queueAction.value;
+        const quality = this.elements.queueQuality.value;
 
         if (!url) {
             this.showError('Please enter a YouTube URL');
@@ -69,10 +151,16 @@ class QueueManager {
         this.hideError();
 
         try {
+            const requestBody = {
+                url,
+                action_type: actionType,
+                quality: quality
+            };
+
             const response = await fetch('/queue/add', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url })
+                body: JSON.stringify(requestBody)
             });
 
             const data = await response.json();
@@ -107,9 +195,11 @@ class QueueManager {
                 this.isProcessing = true;
                 this.startPolling(); // Start polling for updates
 
-                // Start breathing exercise
-                if (window.breathingExercise) {
+                // Start selected animation
+                if (this.selectedAnimation === 'breathing' && window.breathingExercise) {
                     window.breathingExercise.start();
+                } else if (this.selectedAnimation === 'waves' && window.waveAnimation) {
+                    window.waveAnimation.start();
                 }
             } else {
                 this.showError(data.error || 'Failed to start queue');
@@ -201,9 +291,12 @@ class QueueManager {
             this.elements.clearBtn.disabled = stats.total === 0;
             this.elements.startBtn.textContent = 'Start Processing';
 
-            // Stop breathing exercise when processing completes
+            // Stop both animations when processing completes
             if (window.breathingExercise && window.breathingExercise.isRunning()) {
                 window.breathingExercise.stop();
+            }
+            if (window.waveAnimation && window.waveAnimation.isActive) {
+                window.waveAnimation.stop();
             }
         }
     }
@@ -219,26 +312,90 @@ class QueueManager {
             return;
         }
 
-        this.elements.queueList.innerHTML = items.map(item => {
-            return this.renderQueueItem(item);
+        this.elements.queueList.innerHTML = items.map((item, index) => {
+            return this.renderQueueItem(item, index);
         }).join('');
+
+        // Add holographic mouse tracking to all queue items
+        this.addHolographicEffects();
+    }
+
+    /**
+     * Add mouse tracking effects to queue items for 3D tilt
+     */
+    addHolographicEffects() {
+        const queueItems = document.querySelectorAll('.queue-item');
+
+        queueItems.forEach(item => {
+            item.addEventListener('mousemove', (e) => {
+                const rect = item.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+
+                const rotateX = (y - centerY) / 10;
+                const rotateY = (centerX - x) / 10;
+
+                // Apply 3D transform
+                item.style.transform = `
+                    perspective(1000px)
+                    rotateX(${rotateX}deg)
+                    rotateY(${rotateY}deg)
+                    scale3d(1.02, 1.02, 1.02)
+                `;
+
+                // Move holographic gradient based on mouse position
+                const percentX = (x / rect.width) * 100;
+                const percentY = (y / rect.height) * 100;
+
+                const before = item.querySelector('::before');
+                if (item.style) {
+                    item.style.setProperty('--mouse-x', `${percentX}%`);
+                    item.style.setProperty('--mouse-y', `${percentY}%`);
+                }
+            });
+
+            item.addEventListener('mouseleave', () => {
+                item.style.transform = `
+                    perspective(1000px)
+                    rotateX(0deg)
+                    rotateY(0deg)
+                    scale3d(1, 1, 1)
+                `;
+            });
+        });
     }
 
     /**
      * Render a single queue item
      * @param {Object} item - Queue item object
+     * @param {number} index - Index in the queue for staggered animation
      * @returns {string} HTML string for the queue item
      */
-    renderQueueItem(item) {
+    renderQueueItem(item, index = 0) {
         const statusClass = item.status.toLowerCase();
         const title = item.title || item.url;
         const progress = item.progress || 0;
         const emoji = this.statusEmoji[item.status] || '⏳';
 
+        // Action type badge
+        const actionType = item.action_type || 'process';
+        const badgeClass = actionType === 'download' ? 'badge-download' : 'badge-process';
+        const badgeText = actionType === 'download' ? `DL: ${item.quality}` : 'Process';
+
+        // Staggered animation delay
+        const animationDelay = index * 0.1;
+
         return `
-            <div class="queue-item ${statusClass}">
+            <div class="queue-item ${statusClass}" style="animation-delay: ${animationDelay}s">
+                <div class="sparkle"></div>
                 <div class="queue-item-header">
-                    <div class="queue-item-title">${emoji} ${title}</div>
+                    <div class="queue-item-title">
+                        ${emoji} ${title}
+                        <span class="queue-item-badge ${badgeClass}">${badgeText}</span>
+                    </div>
                 </div>
                 <div class="queue-item-status">${item.current_step}</div>
                 <div class="progress-bar">
@@ -330,6 +487,26 @@ function startQueue() {
 function clearQueue() {
     if (queueManager) {
         queueManager.clearQueue();
+    }
+}
+
+function toggleQueueQuality() {
+    const action = document.getElementById('queueAction').value;
+    const qualityGroup = document.getElementById('queueQualityGroup');
+
+    if (action === 'download') {
+        qualityGroup.style.display = 'block';
+    } else {
+        qualityGroup.style.display = 'none';
+    }
+}
+
+/**
+ * Toggle wave animation (called from HTML onclick)
+ */
+function toggleWaves() {
+    if (window.waveAnimation) {
+        window.waveAnimation.toggle();
     }
 }
 

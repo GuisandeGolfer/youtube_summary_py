@@ -12,10 +12,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Optional, Callable
 
 # Import queue manager components
-from .manager import VideoQueue, QueueItem, VideoStatus
+from .manager import VideoQueue, QueueItem, VideoStatus, ActionType
 
 # Import core processing functions
-from src.core.youtube import download_video_audio, get_video_info
+from src.core.youtube import download_video_audio, download_video_full, get_video_info
 from src.core.transcription import transcribe_audio_file
 from src.core.summarization import generate_summary
 from src.core.database import save_transcription_to_db
@@ -36,6 +36,7 @@ class QueueProcessor:
         queue: VideoQueue,
         audio_path: str,
         db_path: str,
+        downloads_path: str,
         max_workers: int = 2,
         on_progress_callback: Optional[Callable] = None
     ):
@@ -46,18 +47,21 @@ class QueueProcessor:
             queue: VideoQueue instance to process
             audio_path: Directory to store audio files
             db_path: Path to SQLite database
+            downloads_path: Directory to store downloaded videos
             max_workers: Number of parallel workers (default: 2)
             on_progress_callback: Optional callback function called on progress updates
         """
         self.queue = queue
         self.audio_path = audio_path
         self.db_path = db_path
+        self.downloads_path = downloads_path
         self.max_workers = max_workers
         self.on_progress = on_progress_callback
         self.should_stop = False
 
-        # Ensure audio directory exists
+        # Ensure directories exist
         os.makedirs(self.audio_path, exist_ok=True)
+        os.makedirs(self.downloads_path, exist_ok=True)
 
     def process_queue_parallel(self):
         """
@@ -161,12 +165,98 @@ class QueueProcessor:
 
         This method is run in parallel for multiple videos.
 
-        Stages:
+        For PROCESS action:
         0. Fetch video info (get title)
-        1. Download (0-25%)
+        1. Download audio (0-25%)
         2. Transcribe (25-75%)
         3. Summarize (75-95%)
         4. Save to database (95-100%)
+
+        For DOWNLOAD action:
+        0. Fetch video info (get title)
+        1. Download full video (0-100%)
+
+        Args:
+            item: QueueItem to process
+
+        Returns:
+            bool: True if successful, False if failed
+        """
+        try:
+            # Route to appropriate handler based on action type
+            if item.action_type == ActionType.DOWNLOAD:
+                return self._process_download(item)
+            else:
+                return self._process_transcribe(item)
+
+        except Exception as e:
+            # Mark as failed with error message
+            item.status = VideoStatus.FAILED
+            item.error = str(e)
+            item.current_step = f"Failed: {str(e)[:50]}"
+            self._notify_progress(item)
+
+            logger.error(f"✗ Failed to process {item.url}: {str(e)}")
+            return False
+
+    def _process_download(self, item: QueueItem) -> bool:
+        """
+        Download a video without processing.
+
+        Args:
+            item: QueueItem to download
+
+        Returns:
+            bool: True if successful, False if failed
+        """
+        try:
+            logger.info(f"Starting download: {item.url} (quality: {item.quality})")
+
+            # STAGE 0: Fetch video info to get title
+            try:
+                self._update_progress(item, 1, "Fetching video info...")
+                video_info = get_video_info(item.url)
+                item.title = video_info['title']
+                item.duration = video_info['duration']
+                self._update_progress(item, 5, f"Found: {item.title}")
+                logger.info(f"Video title: {item.title}")
+            except Exception as e:
+                logger.warning(f"Could not fetch video info: {str(e)}")
+                # Continue anyway
+
+            # Check for stop signal
+            if self.should_stop:
+                item.status = VideoStatus.PENDING
+                return False
+
+            # STAGE 1: Download video (5-100%)
+            item.status = VideoStatus.DOWNLOADING
+            self._update_progress(item, 10, f"Downloading video ({item.quality})...")
+
+            download_info = download_video_full(item.url, self.downloads_path, item.quality)
+
+            # Update title from download info if not already set
+            if not item.title:
+                item.title = download_info['title']
+
+            self._update_progress(item, 100, f"Download complete ({download_info['size_mb']} MB)")
+
+            # Mark as completed
+            item.status = VideoStatus.COMPLETED
+            item.progress = 100
+            item.current_step = f"Downloaded: {download_info['filename']}"
+            self._notify_progress(item)
+
+            logger.info(f"✓ Successfully downloaded: {item.title}")
+            return True
+
+        except Exception as e:
+            logger.error(f"✗ Failed to download {item.url}: {str(e)}")
+            raise
+
+    def _process_transcribe(self, item: QueueItem) -> bool:
+        """
+        Process a video (download audio, transcribe, summarize, save).
 
         Args:
             item: QueueItem to process
@@ -252,14 +342,8 @@ class QueueProcessor:
             return True
 
         except Exception as e:
-            # Mark as failed with error message
-            item.status = VideoStatus.FAILED
-            item.error = str(e)
-            item.current_step = f"Failed: {str(e)[:50]}"
-            self._notify_progress(item)
-
             logger.error(f"✗ Failed to process {item.url}: {str(e)}")
-            return False
+            raise
 
     def _update_progress(self, item: QueueItem, progress: int, step: str):
         """

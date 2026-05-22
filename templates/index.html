@@ -226,34 +226,189 @@
             margin: 20px 0;
             max-height: 400px;
             overflow-y: auto;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .queue-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .queue-list::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+
+        .queue-list::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+        }
+
+        .queue-list::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
         }
 
         .queue-item {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 10px;
-            border-left: 4px solid #e0e0e0;
+            position: relative;
+            background: #1a1a2e;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+            transition: transform 0.1s ease-out;
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            animation: slideInCard 0.5s ease-out backwards;
+        }
+
+        @keyframes slideInCard {
+            0% {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .queue-item::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background:
+                repeating-linear-gradient(
+                    0deg,
+                    rgba(255, 119, 115, 0) 0%,
+                    rgba(255, 237, 95, 0.1) 2.5%,
+                    rgba(168, 255, 95, 0.2) 5%,
+                    rgba(131, 255, 247, 0.1) 7.5%,
+                    rgba(120, 148, 255, 0) 10%
+                ),
+                repeating-linear-gradient(
+                    133deg,
+                    rgba(255, 119, 115, 0) 0%,
+                    rgba(255, 237, 95, 0.1) 2.5%,
+                    rgba(168, 255, 95, 0.2) 5%,
+                    rgba(131, 255, 247, 0.1) 7.5%,
+                    rgba(120, 148, 255, 0) 10%
+                ),
+                repeating-linear-gradient(
+                    67deg,
+                    rgba(255, 119, 115, 0) 0%,
+                    rgba(255, 237, 95, 0.1) 2.5%,
+                    rgba(168, 255, 95, 0.2) 5%,
+                    rgba(131, 255, 247, 0.1) 7.5%,
+                    rgba(120, 148, 255, 0) 10%
+                );
+            background-position: var(--mouse-x, 50%) var(--mouse-y, 50%);
+            background-size: 300% 300%;
+            opacity: 0;
+            mix-blend-mode: color-dodge;
+            filter: brightness(1.3) contrast(1.2);
+            transition: opacity 0.33s ease;
+            pointer-events: none;
+        }
+
+        .queue-item::after {
+            content: '';
+            position: absolute;
+            top: 5%;
+            left: 5%;
+            width: 90%;
+            height: 90%;
+            background: radial-gradient(
+                circle at 50% 50%,
+                rgba(255, 255, 255, 0.05),
+                transparent 60%
+            );
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .queue-item:hover::before {
+            opacity: 1;
+            animation: holographic 3s ease infinite;
+        }
+
+        .queue-item:hover::after {
+            opacity: 1;
+        }
+
+        @keyframes holographic {
+            0% {
+                filter: brightness(1.2) contrast(1.3) hue-rotate(0deg);
+            }
+            50% {
+                filter: brightness(1.4) contrast(1.4) hue-rotate(90deg);
+            }
+            100% {
+                filter: brightness(1.2) contrast(1.3) hue-rotate(0deg);
+            }
+        }
+
+        /* Sparkle effect layer */
+        .queue-item .sparkle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.8) 0%, transparent 1%),
+                radial-gradient(circle at 60% 70%, rgba(255, 255, 255, 0.6) 0%, transparent 1%),
+                radial-gradient(circle at 40% 20%, rgba(255, 255, 255, 0.9) 0%, transparent 1%),
+                radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.7) 0%, transparent 1%);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            mix-blend-mode: screen;
+            z-index: 2;
+        }
+
+        .queue-item:hover .sparkle {
+            opacity: 1;
+            animation: sparkle 2s ease-in-out infinite;
+        }
+
+        @keyframes sparkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
         }
 
         .queue-item.downloading {
-            border-left-color: #ffc107;
+            border-color: rgba(255, 193, 7, 0.5);
+            box-shadow: 0 0 20px rgba(255, 193, 7, 0.2);
         }
 
         .queue-item.transcribing {
-            border-left-color: #17a2b8;
+            border-color: rgba(23, 162, 184, 0.5);
+            box-shadow: 0 0 20px rgba(23, 162, 184, 0.2);
         }
 
         .queue-item.summarizing {
-            border-left-color: #007bff;
+            border-color: rgba(0, 123, 255, 0.5);
+            box-shadow: 0 0 20px rgba(0, 123, 255, 0.2);
         }
 
         .queue-item.completed {
-            border-left-color: #28a745;
+            border-color: rgba(40, 167, 69, 0.5);
+            box-shadow: 0 0 20px rgba(40, 167, 69, 0.2);
         }
 
         .queue-item.failed {
-            border-left-color: #dc3545;
+            border-color: rgba(220, 53, 69, 0.5);
+            box-shadow: 0 0 20px rgba(220, 53, 69, 0.2);
+        }
+
+        .queue-item.pending {
+            border-color: rgba(108, 117, 125, 0.3);
         }
 
         .queue-item-header {
@@ -265,31 +420,65 @@
 
         .queue-item-title {
             font-weight: 600;
-            color: #333;
+            color: #ffffff;
             flex: 1;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            position: relative;
+            z-index: 1;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .queue-item-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75em;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        .badge-download {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .badge-process {
+            background: #667eea;
+            color: white;
         }
 
         .queue-item-status {
             font-size: 0.9em;
-            color: #666;
+            color: rgba(255, 255, 255, 0.8);
             margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
         }
 
         .progress-bar {
             width: 100%;
             height: 8px;
-            background: #e0e0e0;
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 4px;
             overflow: hidden;
+            position: relative;
+            z-index: 1;
         }
 
         .progress-fill {
             height: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #667eea 100%);
+            background-size: 200% 100%;
+            animation: shimmer 2s linear infinite;
             transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -100% 0; }
+            100% { background-position: 100% 0; }
         }
 
         .queue-actions {
@@ -313,7 +502,9 @@
         .empty-queue {
             text-align: center;
             padding: 40px;
-            color: #999;
+            color: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
         }
 
         .queue-stats {
@@ -457,6 +648,127 @@
             background: #5a6268;
             transform: translateY(-2px);
         }
+
+        /* ========================================
+           WAVE ANIMATION STYLES
+           ======================================== */
+
+        /* Wave Animation Container */
+        .wave-container {
+            background: linear-gradient(180deg, #87CEEB 0%, #E0F6FF 50%, #F4E4C1 100%);
+            border-radius: 15px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .wave-header h3 {
+            color: #2C5F7F;
+            margin-bottom: 5px;
+            font-size: 1.5em;
+        }
+
+        .wave-subtitle {
+            color: #5A8CAE;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+
+        /* ASCII Canvas */
+        .wave-canvas {
+            font-family: 'Courier New', Consolas, monospace;
+            font-size: 14px;
+            line-height: 1.2;
+            letter-spacing: 1px;
+            white-space: pre;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Color classes for ASCII characters */
+        .wave-water {
+            color: #1E90FF;
+            transition: color 0.3s ease;
+        }
+
+        .wave-foam {
+            color: #FFFFFF;
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+        }
+
+        .wave-sand {
+            color: #DEB887;
+        }
+
+        .wave-bird {
+            color: #696969;
+        }
+
+        .wave-sun {
+            color: #FFD700;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+        }
+
+        .wave-text {
+            color: #333;
+        }
+
+        /* Toggle button */
+        .wave-toggle-btn {
+            background: #5A8CAE;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 20px;
+        }
+
+        .wave-toggle-btn:hover {
+            background: #4A7C9E;
+            transform: translateY(-2px);
+        }
+
+        /* Animation selector radio buttons */
+        .animation-selector {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+        }
+
+        .animation-selector label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #333;
+            transition: color 0.3s;
+        }
+
+        .animation-selector label:hover {
+            color: #667eea;
+        }
+
+        .animation-selector input[type="radio"] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+        }
     </style>
 </head>
 <body>
@@ -484,6 +796,32 @@
                 >
             </div>
 
+            <div class="input-group">
+                <label>Action</label>
+                <div style="display: flex; gap: 20px; margin-bottom: 15px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="action" value="process" checked onchange="toggleQualityDropdown()">
+                        <span>Transcribe & Summarize</span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="radio" name="action" value="download" onchange="toggleQualityDropdown()">
+                        <span>Download Only</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="input-group" id="qualityGroup" style="display: none;">
+                <label for="quality">Video Quality</label>
+                <select id="quality" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px;">
+                    <option value="best">Best Quality</option>
+                    <option value="1080p">1080p</option>
+                    <option value="720p">720p</option>
+                    <option value="480p">480p</option>
+                    <option value="360p">360p</option>
+                    <option value="audio_only">Audio Only (MP3)</option>
+                </select>
+            </div>
+
             <button type="submit" id="submitBtn">Process Video</button>
         </form>
 
@@ -495,9 +833,9 @@
         <div class="error" id="error"></div>
 
         <div class="result" id="result">
-            <h2>Summary</h2>
+            <h2 id="resultTitle">Summary</h2>
             <div class="summary-content" id="summaryContent"></div>
-            <div class="success-message">
+            <div class="success-message" id="successMessage">
                 Transcription successfully saved to database!
             </div>
         </div>
@@ -526,15 +864,49 @@
                 </div>
             </div>
 
+            <!-- Animation Selector -->
+            <div class="animation-selector">
+                <label>
+                    <input type="radio" name="waitingAnimation" value="breathing" id="animBreathing">
+                    <span>🧘 Breathing Exercise</span>
+                </label>
+                <label>
+                    <input type="radio" name="waitingAnimation" value="waves" id="animWaves">
+                    <span>🌊 Ocean Waves</span>
+                </label>
+            </div>
+
             <!-- Add to Queue -->
-            <div class="queue-input-group">
+            <div class="input-group">
+                <label for="queueUrl">YouTube URL</label>
                 <input
                     type="text"
                     id="queueUrl"
                     placeholder="https://www.youtube.com/watch?v=..."
                 >
-                <button onclick="addToQueue()" id="addBtn">Add to Queue</button>
             </div>
+
+            <div class="input-group">
+                <label for="queueAction">Action</label>
+                <select id="queueAction" onchange="toggleQueueQuality()" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px;">
+                    <option value="process">Transcribe & Summarize</option>
+                    <option value="download">Download Only</option>
+                </select>
+            </div>
+
+            <div class="input-group" id="queueQualityGroup" style="display: none;">
+                <label for="queueQuality">Video Quality</label>
+                <select id="queueQuality" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 16px;">
+                    <option value="best">Best Quality</option>
+                    <option value="1080p">1080p</option>
+                    <option value="720p">720p</option>
+                    <option value="480p">480p</option>
+                    <option value="360p">360p</option>
+                    <option value="audio_only">Audio Only (MP3)</option>
+                </select>
+            </div>
+
+            <button onclick="addToQueue()" id="addBtn" style="margin-top: 10px;">Add to Queue</button>
 
             <!-- Queue List -->
             <div class="queue-list" id="queueList">
@@ -571,6 +943,20 @@
                 <button onclick="toggleBreathing()" id="breathingToggle" class="breathing-toggle-btn">Pause</button>
             </div>
 
+            <!-- Wave Animation -->
+            <div class="wave-container" id="waveContainer" style="display: none;">
+                <div class="wave-header">
+                    <h3>While You Wait - Ocean Waves</h3>
+                    <p class="wave-subtitle">Relax and watch the waves</p>
+                </div>
+
+                <div class="wave-canvas" id="waveCanvas">
+                    <!-- ASCII art will be inserted here by JavaScript -->
+                </div>
+
+                <button onclick="toggleWaves()" id="waveToggle" class="wave-toggle-btn">Pause</button>
+            </div>
+
             <div class="error" id="queueError"></div>
         </div>
         <!-- End Queue Tab -->
@@ -579,6 +965,7 @@
 
     <!-- External scripts -->
     <script src="{{ url_for('static', filename='js/breathing.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/wave.js') }}"></script>
     <script src="{{ url_for('static', filename='js/queue.js') }}"></script>
 
     <script>
@@ -589,21 +976,51 @@
         const submitBtn = document.getElementById('submitBtn');
         const statusText = document.getElementById('statusText');
         const summaryContent = document.getElementById('summaryContent');
+        const resultTitle = document.getElementById('resultTitle');
+        const successMessage = document.getElementById('successMessage');
 
-        const statusMessages = [
+        const processStatusMessages = [
             'Downloading video audio...',
             'Transcribing audio...',
             'Generating summary...',
             'Saving to database...'
         ];
 
+        const downloadStatusMessages = [
+            'Fetching video information...',
+            'Downloading video...',
+            'Merging video and audio...',
+            'Almost done...'
+        ];
+
         let statusIndex = 0;
         let statusInterval;
+
+        // Toggle quality dropdown based on action selection
+        function toggleQualityDropdown() {
+            const action = document.querySelector('input[name="action"]:checked').value;
+            const qualityGroup = document.getElementById('qualityGroup');
+            const submitBtn = document.getElementById('submitBtn');
+
+            if (action === 'download') {
+                qualityGroup.style.display = 'block';
+                submitBtn.textContent = 'Download Video';
+            } else {
+                qualityGroup.style.display = 'none';
+                submitBtn.textContent = 'Process Video';
+            }
+        }
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const url = document.getElementById('videoUrl').value;
+            const action = document.querySelector('input[name="action"]:checked').value;
+            const quality = document.getElementById('quality').value;
+
+            // Determine endpoint and status messages
+            const endpoint = action === 'download' ? '/download' : '/process';
+            const statusMessages = action === 'download' ? downloadStatusMessages : processStatusMessages;
 
             // Reset UI
             loading.classList.add('active');
@@ -620,12 +1037,16 @@
             }, 5001);
 
             try {
-                const response = await fetch('/process', {
+                const requestBody = action === 'download'
+                    ? { url, quality }
+                    : { url };
+
+                const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ url }),
+                    body: JSON.stringify(requestBody),
                 });
 
                 const data = await response.json();
@@ -634,7 +1055,24 @@
                 loading.classList.remove('active');
 
                 if (response.ok && data.success) {
-                    summaryContent.textContent = data.summary;
+                    if (action === 'download') {
+                        // Display download info
+                        const downloadInfo = data.download_info;
+                        resultTitle.textContent = 'Download Complete';
+                        summaryContent.innerHTML = `
+                            <strong>Title:</strong> ${downloadInfo.title}<br><br>
+                            <strong>Filename:</strong> ${downloadInfo.filename}<br>
+                            <strong>Quality:</strong> ${downloadInfo.quality}<br>
+                            <strong>File Size:</strong> ${downloadInfo.size_mb} MB<br>
+                            <strong>Location:</strong> ${downloadInfo.filepath}
+                        `;
+                        successMessage.textContent = 'Video downloaded successfully!';
+                    } else {
+                        // Display summary
+                        resultTitle.textContent = 'Summary';
+                        summaryContent.textContent = data.summary;
+                        successMessage.textContent = 'Transcription successfully saved to database!';
+                    }
                     result.classList.add('active');
                 } else {
                     error.textContent = data.error || 'An error occurred';

@@ -13,14 +13,17 @@ PROJECT_ROOT = Path(__file__).parent.absolute()
 # Data directories
 DATA_DIR = PROJECT_ROOT / "data"
 AUDIO_DIR = DATA_DIR / "audio"
+DOWNLOADS_DIR = PROJECT_ROOT / "downloads"
 DB_PATH = DATA_DIR / "transcriptions.db"
 
 # Ensure directories exist
 DATA_DIR.mkdir(exist_ok=True)
 AUDIO_DIR.mkdir(exist_ok=True)
+DOWNLOADS_DIR.mkdir(exist_ok=True)
 
 # Convert to strings for compatibility with existing code
 AUDIO_PATH = str(AUDIO_DIR)
+DOWNLOADS_PATH = str(DOWNLOADS_DIR)
 DB_PATH_STR = str(DB_PATH)
 
 # Flask settings

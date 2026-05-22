@@ -70,6 +70,7 @@ Common reasons tests might fail:
 - Hardcoded paths in transcription.py
 - Missing prompt.json file
 
+
 **This is OKAY!** The tests show you what needs to be fixed.
 
 ## TDD Learning Exercise

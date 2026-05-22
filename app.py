@@ -4,7 +4,7 @@ from flask import Flask, render_template, request, jsonify
 from dotenv import load_dotenv
 
 # Import configuration
-from config import AUDIO_PATH, DB_PATH_STR, FLASK_HOST, FLASK_PORT, FLASK_DEBUG, QUEUE_MAX_WORKERS
+from config import AUDIO_PATH, DOWNLOADS_PATH, DB_PATH_STR, FLASK_HOST, FLASK_PORT, FLASK_DEBUG, QUEUE_MAX_WORKERS
 
 # Import core functionality
 from src.core import (
@@ -13,6 +13,9 @@ from src.core import (
     generate_summary,
     save_transcription_to_db
 )
+
+# Import download function
+from src.core.youtube import download_video_full
 
 # Import queue management
 from src.queue import VideoQueue, QueueProcessor
@@ -90,6 +93,41 @@ def process_video():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/download', methods=['POST'])
+def download_video():
+    """Download a YouTube video without processing"""
+    try:
+        data = request.get_json()
+        url = data.get('url')
+        quality = data.get('quality', 'best')
+
+        if not url:
+            return jsonify({'error': 'No URL provided'}), 400
+
+        logger.info(f"Downloading video: {url} with quality: {quality}")
+
+        # Download the video
+        download_info = download_video_full(url, DOWNLOADS_PATH, quality)
+
+        logger.info("Download completed successfully")
+
+        return jsonify({
+            'success': True,
+            'message': f'Video downloaded successfully!',
+            'download_info': {
+                'filename': download_info['filename'],
+                'title': download_info['title'],
+                'size_mb': download_info['size_mb'],
+                'quality': download_info['quality'],
+                'filepath': download_info['filepath']
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Error downloading video: {str(e)}", exc_info=True)
+        return jsonify({'error': str(e)}), 500
+
+
 # ============================================================================
 # QUEUE ROUTES
 # ============================================================================
@@ -101,7 +139,9 @@ def add_to_queue():
 
     Request JSON:
         {
-            "url": "https://youtube.com/watch?v=..."
+            "url": "https://youtube.com/watch?v=...",
+            "action_type": "process" or "download" (optional, defaults to "process"),
+            "quality": "best" (optional, defaults to "best")
         }
 
     Returns:
@@ -110,12 +150,20 @@ def add_to_queue():
     try:
         data = request.get_json()
         url = data.get('url')
+        action_type_str = data.get('action_type', 'process')
+        quality = data.get('quality', 'best')
 
         if not url:
             return jsonify({'error': 'No URL provided'}), 400
 
+        # Import ActionType from queue manager
+        from src.queue.manager import ActionType
+
+        # Convert string to ActionType enum
+        action_type = ActionType.DOWNLOAD if action_type_str == 'download' else ActionType.PROCESS
+
         # Add to queue
-        item = video_queue.add(url)
+        item = video_queue.add(url, action_type=action_type, quality=quality)
 
         # Fetch video info (title) in background to avoid blocking
         # This makes the title appear immediately in the queue UI
@@ -189,6 +237,7 @@ def start_queue():
             queue=video_queue,
             audio_path=AUDIO_PATH,
             db_path=DB_PATH,
+            downloads_path=DOWNLOADS_PATH,
             max_workers=QUEUE_MAX_WORKERS
         )
 
